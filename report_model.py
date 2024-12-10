@@ -1,17 +1,25 @@
 import os
-import subprocess
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
 
 # Ensure directory exists
 def ensure_directory(path):
-    if not os.path.exists(path):
+    if path and not os.path.exists(path):  # Check if the path is not empty
         os.makedirs(path)
 
 # Save DataFrame to Excel with auto-adjusted column widths and formatting
 def save_with_auto_width(filepath, df, sheet_name=None):
-    df.to_excel(filepath, index=False, engine='openpyxl', sheet_name=sheet_name)
+    if os.path.exists(filepath):
+        # Load the workbook and append a new sheet
+        with pd.ExcelWriter(filepath, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df.to_excel(writer, index=False, sheet_name=sheet_name)
+    else:
+        # Create a new workbook
+        with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name=sheet_name)
+
+    # Format the sheet
     wb = load_workbook(filepath)
     ws = wb[sheet_name]
 
@@ -46,59 +54,57 @@ def save_with_auto_width(filepath, df, sheet_name=None):
 
     wb.save(filepath)
 
-# Run individual scripts and collect their outputs
-def run_tests(test_scripts, result_dir):
-    ensure_directory(result_dir)
-    for script in test_scripts:
-        script_name = os.path.basename(script)
-        print(f"Running test: {script_name}")
-        try:
-            subprocess.run(["python", script], check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Error running {script_name}: {e}")
+# Consolidate specified summary files into one report
+def consolidate_summaries(file_list, report_file):
+    # Remove the report file if it exists to prevent appending issues
+    if os.path.exists(report_file):
+        os.remove(report_file)
 
-# Consolidate all test results into a single report
-def consolidate_results(result_dir, report_file):
     summary_data = []
 
-    for file_name in os.listdir(result_dir):
-        if file_name.endswith("_results.xlsx"):
-            file_path = os.path.join(result_dir, file_name)
-            test_case = file_name.replace("_results.xlsx", "").replace("_", " ").title()
-
-            # Load individual test results
+    # Combine all data into a single summary sheet
+    for file_path in file_list:
+        try:
             df = pd.read_excel(file_path)
-            if 'testcase' not in df.columns:
-                df['testcase'] = test_case
-            summary_data.append(df[['page_url', 'testcase', 'result', 'comments']])
+            summary_data.append(df)
+        except Exception as e:
+            print(f"Error reading file {file_path}: {e}")
 
-            # Add individual test results as a separate sheet
-            save_with_auto_width(report_file, df, sheet_name=test_case)
-
-    # Create and save the summary sheet
     if summary_data:
-        summary_df = pd.concat(summary_data, ignore_index=True)
-        save_with_auto_width(report_file, summary_df, sheet_name="Summary")
-        print(f"Consolidated report saved to {report_file}")
+        combined_df = pd.concat(summary_data, ignore_index=True)
+        save_with_auto_width(report_file, combined_df, sheet_name="Combined_Summary")
+        print("Combined summary added as the first sheet.")
+    else:
+        print("No valid files found to consolidate.")
+
+    # Add individual files as separate sheets
+    for file_path in file_list:
+        sheet_name = os.path.splitext(os.path.basename(file_path))[0]  # Use file name without extension as sheet name
+        try:
+            df = pd.read_excel(file_path)
+            save_with_auto_width(report_file, df, sheet_name=sheet_name)
+        except Exception as e:
+            print(f"Error reading file {file_path}: {e}")
+
+    print(f"All summaries have been consolidated into {report_file}")
 
 # Main function
 def main():
-    test_scripts = [
-        "Currency_Filtering_Test.py",
-        "H1_Tag_Existence_Test.py",
-        "HTML_Tag_Sequence_Test.py",
-        "Image_Alt_Attribute_Test.py",
-        "Scrape_Data_from_Script_Tag.py",
-        "URL_Status_Code_Test.py",
+    # List of specific summary files to consolidate
+    file_list = [
+        "test_results/currency_test_summary.xlsx",
+        "test_results/h1_tag_summary.xlsx",
+        "test_results/html_tag_summary.xlsx",
+        "test_results/image_alt_summary.xlsx",
+        "test_results/script_data_summary.xlsx",
+        "test_results/url_status_summary.xlsx"
     ]
-    result_dir = "test_results"
-    report_file = os.path.join(result_dir, "summary_report.xlsx")
 
-    # Run all tests
-    run_tests(test_scripts, result_dir)
+    # Output consolidated report file
+    report_file = "test_results/report_model.xlsx"
 
-    # Consolidate results
-    consolidate_results(result_dir, report_file)
+    # Consolidate summaries
+    consolidate_summaries(file_list, report_file)
 
 if __name__ == "__main__":
     main()

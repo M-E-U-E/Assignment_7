@@ -1,0 +1,28 @@
+# Virtual environment
+env/
+
+# Compiled Python files
+*.pyc
+__pycache__/
+
+# Excel report outputs
+test_results/report_model.xlsx
+
+# Temporary or intermediate Excel files
+test_results/*.xlsx
+!test_results/currency_test_summary.xlsx
+!test_results/h1_tag_summary.xlsx
+!test_results/html_tag_summary.xlsx
+!test_results/image_alt_summary.xlsx
+!test_results/script_data_summary.xlsx
+!test_results/url_status_summary.xlsx
+
+# IDE or editor-specific files
+.vscode/
+.idea/
+
+# Logs and debug output
+*.log
+
+# Python dependency files
+pip-log.txt

@@ -28,13 +28,6 @@ def ensure_directory(path):
 
 # Save DataFrame to Excel with auto-adjusted column widths and formatting
 def save_with_auto_width(filepath, df):
-    """
-    Save a DataFrame to an Excel file, auto-adjust column widths, and enhance formatting.
-
-    Args:
-        filepath (str): Path to save the Excel file.
-        df (pd.DataFrame): DataFrame to save.
-    """
     df.to_excel(filepath, index=False, engine='openpyxl')
     wb = load_workbook(filepath)
     ws = wb.active
@@ -74,9 +67,8 @@ def save_with_auto_width(filepath, df):
     wb.save(filepath)
 
 # Test currency filter functionality
-def test_currency_filter(driver, url):
+def test_currency_filter(driver, url, currency_list):
     logging.info(f"Starting Currency Filter Test for URL: {url}")
-    testcase = "Currency Filter Test"
     results = []  # List to store individual test results for each currency
 
     try:
@@ -86,77 +78,120 @@ def test_currency_filter(driver, url):
         WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
         # Scroll down to load all content
-        for _ in range(3):
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
 
         dropdown = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "js-currency-sort-footer"))
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".select-wrap"))
         )
-        dropdown.click()
-        logging.info("Currency dropdown opened.")
+        driver.execute_script("arguments[0].click();", dropdown)
 
         options = dropdown.find_elements(By.CSS_SELECTOR, ".select-ul > li")
         logging.info(f"Found {len(options)} currency options.")
 
         if not options:
             logging.warning("No currency options found in the dropdown.")
-            return [{"Currency Name": "All", "Currency Symbol": "N/A", "Status": "Fail", "Reason": "No currency options found"}]
+            return []
 
-        for option in options:
-            data_country = option.get_attribute("data-currency-country")
-            currency_element = option.find_element(By.CSS_SELECTOR, ".option > p")
-            currency_symbol = currency_element.text.split(" ")[0].strip()
+        for currency_code, currency_data in currency_list.items():
+            country = currency_data["Country"]
+            symbol = currency_data["Symbol"]
+            logging.info(f"Testing currency: {country} ({currency_code})")
+
+            matching_option = None
+            for option in options:
+                if currency_code in option.get_attribute("data-currency-country"):
+                    matching_option = option
+                    break
+
+            if not matching_option:
+                logging.warning(f"Currency {country} ({currency_code}) not found in dropdown. Skipping.")
+                continue
 
             try:
-                dropdown.click()
+                driver.execute_script("arguments[0].click();", matching_option)
                 WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable(option)
-                ).click()
+                    EC.text_to_be_present_in_element((By.ID, "js-currency-sort-footer"), symbol)
+                )
 
-                tiles = driver.find_elements(By.CLASS_NAME, "js-price-value")
-                if not tiles or not all(currency_symbol in tile.text for tile in tiles):
-                    results.append({"Currency Name": data_country, "Currency Symbol": currency_symbol, "Status": "Fail", "Reason": "Currency not reflected in tiles"})
+                tiles = driver.find_elements(By.CLASS_NAME, "property-tiles")
+                price_info = driver.find_elements(By.CLASS_NAME, "js-price-value")
+
+                if not tiles or not price_info:
+                    results.append({"Country Name": country, "Currency Name": currency_code, "Symbol": symbol, "Status": "Inconclusive", "Reason": "No property tiles or price info found to verify currency change"})
+                    continue
+
+                tile_texts = [tile.text for tile in tiles]
+                price_texts = [price.text for price in price_info]
+
+                logging.info(f"Currency: {symbol}")
+                logging.info(f"Property Tiles Text: {tile_texts}")
+                logging.info(f"Price Info Text: {price_texts}")
+
+                expected_symbol = symbol.split()[0]
+                symbol_match_tiles = any(expected_symbol in text for text in tile_texts)
+                symbol_match_prices = any(expected_symbol in text for text in price_texts)
+
+                if symbol_match_tiles and symbol_match_prices:
+                    results.append({"Country Name": country, "Currency Name": currency_code, "Symbol": symbol, "Status": "Pass"})
                 else:
-                    results.append({"Currency Name": data_country, "Currency Symbol": currency_symbol, "Status": "Pass", "Reason": "Validation successful"})
+                    results.append({"Country Name": country, "Currency Name": currency_code, "Symbol": symbol, "Status": "Fail"})
+
             except Exception as e:
-                results.append({"Currency Name": data_country, "Currency Symbol": currency_symbol, "Status": "Fail", "Reason": str(e)})
-                logging.error(f"Error for currency {currency_symbol}: {str(e)}")
+                results.append({"Country Name": country, "Currency Name": currency_code, "Symbol": symbol, "Status": "Fail", "Reason": f"Error selecting currency {symbol}: {e}"})
+                logging.error(f"Error for currency {symbol}: {str(e)}")
 
         return results
 
     except Exception as e:
-        logging.error(f"Error during {testcase}: {str(e)}")
-        return [{"Currency Name": "All", "Currency Symbol": "N/A", "Status": "Fail", "Reason": f"Exception: {str(e)}"}]
+        logging.error(f"Error during Currency Filter Test: {str(e)}")
+        return []
 
 # Main function
 def main():
-    url = "https://www.alojamiento.io/"  # Replace with the actual URL
+    url = "https://www.alojamiento.io/property/mall-of-i-stanbul-3/BC-6975002/"  # Replace with the actual URL
     output_dir = "test_results"
     ensure_directory(output_dir)
 
     output_results_xlsx = os.path.join(output_dir, "currency_test_results.xlsx")
     output_summary_xlsx = os.path.join(output_dir, "currency_test_summary.xlsx")
 
+    currency_list = {
+        "AE": {"Code": "AED", "Country": "AE", "Symbol": "\u062f.\u0625.", "Rate": 3.672985},
+        "AU": {"Code": "AUD", "Country": "AU", "Symbol": "$", "Rate": 1.551424},
+        "BD": {"Code": "BDT", "Country": "BD", "Symbol": "\u09f3", "Rate": 119.903132},
+        "BE": {"Code": "EUR", "Country": "BE", "Symbol": "\u20ac", "Rate": 0.945147},
+        "CA": {"Code": "CAD", "Country": "CA", "Symbol": "$", "Rate": 1.413566},
+        "DE": {"Code": "EUR", "Country": "DE", "Symbol": "\u20ac", "Rate": 0.945147},
+        "ES": {"Code": "EUR", "Country": "ES", "Symbol": "\u20ac", "Rate": 0.945147},
+        "FR": {"Code": "EUR", "Country": "FR", "Symbol": "\u20ac", "Rate": 0.945147},
+        "GB": {"Code": "GBP", "Country": "GB", "Symbol": "\u00a3", "Rate": 0.782878},
+        "IE": {"Code": "GBP", "Country": "IE", "Symbol": "\u00a3", "Rate": 0.782878},
+        "IT": {"Code": "EUR", "Country": "IT", "Symbol": "\u20ac", "Rate": 0.945147},
+        "SG": {"Code": "SGD", "Country": "SG", "Symbol": "$", "Rate": 1.338978},
+        "UK": {"Code": "GBP", "Country": "UK", "Symbol": "\u00a3", "Rate": 0.782878},
+        "US": {"Code": "USD", "Country": "US", "Symbol": "$", "Rate": 1},
+    }
+
     driver = init_driver()
     try:
-        results = test_currency_filter(driver, url)
+        results = test_currency_filter(driver, url, currency_list)
 
-        df_results = pd.DataFrame(results)
-        save_with_auto_width(output_results_xlsx, df_results)
+        if results:
+            df_results = pd.DataFrame(results)
+            save_with_auto_width(output_results_xlsx, df_results)
 
-        fail_results = [res for res in results if res["Status"] == "Fail"]
         pass_count = len([res for res in results if res["Status"] == "Pass"])
-        fail_count = len(fail_results)
+        fail_count = len([res for res in results if res["Status"] == "Fail"])
 
         overall_status = "Pass" if fail_count == 0 else "Fail"
         comments = "All currencies passed successfully." if fail_count == 0 else f"{fail_count} currencies failed."
 
         summary_data = [{
-            "page_url": url,
-            "testcase": "Currency Filter Test",
-            "status": overall_status,
-            "comments": comments
+            "Page URL": url,
+            "Test Case": "Currency Filter Test",
+            "Status": overall_status,
+            "Comments": comments
         }]
         df_summary = pd.DataFrame(summary_data)
 
