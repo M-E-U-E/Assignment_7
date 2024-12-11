@@ -56,11 +56,15 @@ To clone this project to your local machine, follow these steps:
     cd Assignment_7
     ```
     Create a virtual environment to isolate dependencies:
-   ```
-   python -m venv env
-   source env/bin/activate  # Linux/Mac
-   env\Scripts\activate
-   ```
+    ```
+    python3 -m venv env
+    source env/bin/activate  # Linux/Mac
+    env\Scripts\activate
+    ```
+   Install the requirements
+    ```
+    pip install -r requirements.txt
+    ```
     **Run all tests using the main script:**
     ```
     python run_all_test.py
