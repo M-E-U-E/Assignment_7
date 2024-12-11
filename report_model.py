@@ -10,14 +10,8 @@ def ensure_directory(path):
 
 # Save DataFrame to Excel with auto-adjusted column widths and formatting
 def save_with_auto_width(filepath, df, sheet_name=None):
-    if os.path.exists(filepath):
-        # Load the workbook and append a new sheet
-        with pd.ExcelWriter(filepath, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-            df.to_excel(writer, index=False, sheet_name=sheet_name)
-    else:
-        # Create a new workbook
-        with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name=sheet_name)
+    with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
 
     # Format the sheet
     wb = load_workbook(filepath)
@@ -46,7 +40,7 @@ def save_with_auto_width(filepath, df, sheet_name=None):
                 pass
             cell.alignment = alignment
             cell.border = border
-        ws.column_dimensions[col_letter].width = max_length + 5
+        ws.column_dimensions[col_letter].width = max_length + 5  # Adjust column width
     for cell in ws[1]:
         cell.font = header_font
         cell.fill = header_fill
@@ -72,21 +66,12 @@ def consolidate_summaries(file_list, report_file):
 
     if summary_data:
         combined_df = pd.concat(summary_data, ignore_index=True)
+
+        # Fix alignment and add styles to the combined data
         save_with_auto_width(report_file, combined_df, sheet_name="Combined_Summary")
-        print("Combined summary added as the first sheet.")
+        print("Combined summary added as the first and only sheet.")
     else:
         print("No valid files found to consolidate.")
-
-    # Add individual files as separate sheets
-    for file_path in file_list:
-        sheet_name = os.path.splitext(os.path.basename(file_path))[0]  # Use file name without extension as sheet name
-        try:
-            df = pd.read_excel(file_path)
-            save_with_auto_width(report_file, df, sheet_name=sheet_name)
-        except Exception as e:
-            print(f"Error reading file {file_path}: {e}")
-
-    print(f"All summaries have been consolidated into {report_file}")
 
 # Main function
 def main():

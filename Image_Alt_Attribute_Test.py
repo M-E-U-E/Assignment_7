@@ -118,10 +118,10 @@ def check_image_alt_and_save(driver, url, output_xlsx, output_summary_xlsx):
 
     # Create a summary with the required format
     summary_data = [{
-        "page_url": url,
-        "testcase": "Test of Image Alt Attributes",
-        "status": overall_status,
-        "comments": comments
+        "Page URL": url,
+        "Test Case": "Test of Image Alt Attributes",
+        "Status": overall_status,
+        "Comments": comments
     }]
     df_summary = pd.DataFrame(summary_data)
 

@@ -130,10 +130,10 @@ def main():
 
         # Create the summary data
         summary_data = [{
-            "page_url": url,
-            "testcase": "Test of H1 Tags",
-            "status": overall_status,
-            "comments": comments
+            "Page URL": url,
+            "Test Case": "Test of H1 Tags",
+            "Status": overall_status,
+            "Comments": comments
         }]
         df_summary = pd.DataFrame(summary_data)
 

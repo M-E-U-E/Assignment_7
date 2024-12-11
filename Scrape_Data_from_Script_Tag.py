@@ -93,7 +93,7 @@ def scrape_script_data(driver, url):
 
 # Main function
 def main():
-    url = "https://www.alojamiento.io/all/spain/community-of-madrid/madrid/"
+    url = "https://www.alojamiento.io/property/mall-of-i-stanbul-3/BC-6975002/"
     output_dir = "test_results"
     ensure_directory(output_dir)
 
@@ -122,10 +122,10 @@ def main():
         # Update only summary with pass/fail
         comments = "All script data extracted successfully" if result == "Pass" else data.get("Error", "Unknown Error")
         summary_results = [{
-            "page_url": url,
-            "testcase": "test of script data",
-            "status": result,
-            "comments": comments
+            "Page URL": url,
+            "Test Case": "test of script data",
+            "Status": result,
+            "Comments": comments
         }]
         df_summary = pd.DataFrame(summary_results)
         save_with_auto_width(output_summary_xlsx, df_summary)

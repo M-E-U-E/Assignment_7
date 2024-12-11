@@ -116,10 +116,10 @@ def main():
         overall_status = "Pass" if result == "Pass" else "Fail"
         summary_comment = "HTML tag sequence is valid." if result == "Pass" else comment
         summary_data = [{
-            "page_url": url,
-            "testcase": "Test of HTML Tag Sequence",
-            "status": overall_status,
-            "comments": summary_comment
+            "Page URL": url,
+            "Test Case": "Test of HTML Tag Sequence",
+            "Status": overall_status,
+            "Comments": summary_comment
         }]
         df_summary = pd.DataFrame(summary_data)
         save_with_auto_width(output_xlsx_summary, df_summary)

@@ -147,10 +147,10 @@ def check_url_status_and_save(driver, url, output_xlsx, output_summary_xlsx):
         comments = f"{failed_count} URL(s) failed."
     # Create summary including failed URLs
     summary_data = [{
-        "page_url": url,
-        "testcase": "Test of URLs",
-        "status": overall_status,
-        "comments": comments
+        "Page URL": url,
+        "Test Case": "Test of URLs",
+        "Status": overall_status,
+        "Comments": comments
     }]
     df_summary = pd.DataFrame(summary_data)
     save_with_auto_width(output_summary_xlsx, df_summary)

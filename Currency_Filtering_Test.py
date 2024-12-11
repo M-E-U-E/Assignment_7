@@ -25,9 +25,12 @@ def init_driver():
 def ensure_directory(path):
     if not os.path.exists(path):
         os.makedirs(path)
+        logging.info(f"Directory created: {path}")
+    else:
+        logging.info(f"Directory already exists: {path}")
 
 # Save DataFrame to Excel with auto-adjusted column widths and formatting
-def save_with_auto_width(filepath, df):
+def save_with_auto_width(filepath, df, has_reason_column=False):
     df.to_excel(filepath, index=False, engine='openpyxl')
     wb = load_workbook(filepath)
     ws = wb.active
@@ -63,6 +66,14 @@ def save_with_auto_width(filepath, df):
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = alignment
+
+    # Format the 'Reason' column to match the layout in the image
+    if has_reason_column:
+        reason_col = ws['D']
+        for cell in reason_col[1:]:  # Skip header
+            if cell.value:
+                cell.value = f"Message:\n{cell.value}"  # Add 'Message:' prefix with a newline
+                cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
     wb.save(filepath)
 
@@ -157,20 +168,12 @@ def main():
     output_summary_xlsx = os.path.join(output_dir, "currency_test_summary.xlsx")
 
     currency_list = {
-        "AE": {"Code": "AED", "Country": "AE", "Symbol": "\u062f.\u0625.", "Rate": 3.672985},
-        "AU": {"Code": "AUD", "Country": "AU", "Symbol": "$", "Rate": 1.551424},
-        "BD": {"Code": "BDT", "Country": "BD", "Symbol": "\u09f3", "Rate": 119.903132},
-        "BE": {"Code": "EUR", "Country": "BE", "Symbol": "\u20ac", "Rate": 0.945147},
-        "CA": {"Code": "CAD", "Country": "CA", "Symbol": "$", "Rate": 1.413566},
-        "DE": {"Code": "EUR", "Country": "DE", "Symbol": "\u20ac", "Rate": 0.945147},
-        "ES": {"Code": "EUR", "Country": "ES", "Symbol": "\u20ac", "Rate": 0.945147},
-        "FR": {"Code": "EUR", "Country": "FR", "Symbol": "\u20ac", "Rate": 0.945147},
-        "GB": {"Code": "GBP", "Country": "GB", "Symbol": "\u00a3", "Rate": 0.782878},
-        "IE": {"Code": "GBP", "Country": "IE", "Symbol": "\u00a3", "Rate": 0.782878},
-        "IT": {"Code": "EUR", "Country": "IT", "Symbol": "\u20ac", "Rate": 0.945147},
-        "SG": {"Code": "SGD", "Country": "SG", "Symbol": "$", "Rate": 1.338978},
-        "UK": {"Code": "GBP", "Country": "UK", "Symbol": "\u00a3", "Rate": 0.782878},
-        "US": {"Code": "USD", "Country": "US", "Symbol": "$", "Rate": 1},
+        "AE": {"Code": "AED", "Country": "AE", "Symbol": "\u062f.\u0625."},
+        "AU": {"Code": "AUD", "Country": "AU", "Symbol": "$"},
+        "BD": {"Code": "BDT", "Country": "BD", "Symbol": "\u09f3"},
+        "BE": {"Code": "EUR", "Country": "BE", "Symbol": "\u20ac"},
+        "CA": {"Code": "CAD", "Country": "CA", "Symbol": "$"},
+        "US": {"Code": "USD", "Country": "US", "Symbol": "$"},
     }
 
     driver = init_driver()
@@ -178,8 +181,12 @@ def main():
         results = test_currency_filter(driver, url, currency_list)
 
         if results:
+            logging.info(f"Results retrieved: {len(results)} entries.")
             df_results = pd.DataFrame(results)
-            save_with_auto_width(output_results_xlsx, df_results)
+            save_with_auto_width(output_results_xlsx, df_results, has_reason_column=True)
+            logging.info(f"Test results saved to: {output_results_xlsx}")
+        else:
+            logging.warning("No results to save. Skipping file creation.")
 
         pass_count = len([res for res in results if res["Status"] == "Pass"])
         fail_count = len([res for res in results if res["Status"] == "Fail"])
@@ -196,8 +203,7 @@ def main():
         df_summary = pd.DataFrame(summary_data)
 
         save_with_auto_width(output_summary_xlsx, df_summary)
-        logging.info(f"Test results saved to {output_results_xlsx}")
-        logging.info(f"Test summary saved to {output_summary_xlsx}")
+        logging.info(f"Test summary saved to: {output_summary_xlsx}")
 
     except Exception as e:
         logging.error(f"An error occurred during execution: {e}")
@@ -205,6 +211,7 @@ def main():
         driver.quit()
 
 if __name__ == "__main__":
+
     try:
         main()
     except KeyboardInterrupt:
