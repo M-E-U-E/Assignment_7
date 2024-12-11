@@ -5,7 +5,7 @@
 ## Project Overview
 
   Automate testing of a vacation rental details page to ensure SEO compliance and functionality. This includes validating H1 tags, HTML tag sequence, image alt attributes, URL availability, currency filter accuracy, and script data integrity. Test results are consolidated into an Excel report for quick issue identification.
----
+
 
 ## Features
 - Automated browser interactions using **Selenium WebDriver**.
