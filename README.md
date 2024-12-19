@@ -69,7 +69,10 @@ To clone this project to your local machine, follow these steps:
     ```
     python run_all_test.py
     ```
-
+    **Run to generate to see all report at once**
+    ```
+    python report_model.py
+    ```
     **Run individual test scripts:**
     
     Currency Filtering Test:
