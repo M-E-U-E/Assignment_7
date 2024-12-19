@@ -147,12 +147,12 @@ Assignment_7/
 ---
 
 ## Outputs
-1. **Currency Test Results**:
-   - File: `test_results/currency_test_results.xlsx`
+1. **Test Results**:
+   - File: `test_results/report_model_details.xlsx`
    - Details of each tested currency, including status (Pass/Fail) and reasons for failures.
 
 2. **Summary**:
-   - File: `test_results/currency_test_summary.xlsx`
+   - File: `test_results/report_model.xlsx`
    - Overall summary of the test case with Pass/Fail status and comments.
 
 ---
